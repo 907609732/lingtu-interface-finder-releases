@@ -1,0 +1,98 @@
+name: Assemble Windows 0.5.5 with bundled models
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12.10
+      - name: Verify and extract release components
+        shell: pwsh
+        run: |
+          gh release download v0.5.5 -p components.zip
+          if($LASTEXITCODE){throw 'Component download failed'}
+          if((Get-FileHash components.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '20c63a31329a8e673cbab7f1091dc1d26e927982ef796f2464f455ffd14bbd16'){throw 'Component checksum mismatch'}
+          gh release download v0.5.4 -p '*.7z.*' -D base
+          if($LASTEXITCODE){throw 'Base runtime download failed'}
+          $expected=@{'quick-interface-0.5.4-windows-x64.7z.001'='f96e6f9b6635d6b2b416a14ef061e35c10fa9c99b3e23ac73c872f11a6c1b3b7';'quick-interface-0.5.4-windows-x64.7z.002'='486249b9781d283bfd232535b70690185f68d390cd96fcbf14801256b8685313'}
+          foreach($f in Get-ChildItem base){if((Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected[$f.Name]){throw 'Base checksum mismatch'}}
+          7z x base/quick-interface-0.5.4-windows-x64.7z.001 -obundle -y | Out-Null
+          if($LASTEXITCODE){throw 'Base extraction failed'}
+          Expand-Archive components.zip update
+          Copy-Item update/0.5.5更新包/payload/* bundle/团队便携版 -Recurse -Force
+      - name: Bundle fixed model weights and licenses
+        shell: pwsh
+        run: |
+          $root=Join-Path $PWD 'bundle/团队便携版'
+          $source=Join-Path $root '服务端/server/model-pack'
+          $target=Join-Path $root '桌面端/resources/bundled-model'
+          New-Item -ItemType Directory $target -Force | Out-Null
+          $m=Get-Content "$source/manifest.json" -Raw | ConvertFrom-Json
+          foreach($model in $m.models){foreach($f in $model.files){
+            $dest=Join-Path $target $f.path
+            New-Item -ItemType Directory (Split-Path $dest) -Force | Out-Null
+            $name=$f.path.Substring($model.name.Length+1)
+            curl.exe -fL --retry 2 --connect-timeout 30 --max-time 900 -sS "https://huggingface.co/$($model.repository)/resolve/$($model.revision)/$name" -o $dest
+            if($LASTEXITCODE){curl.exe -fL --retry 2 --connect-timeout 30 --max-time 900 -sS "https://hf-mirror.com/$($model.repository)/resolve/$($model.revision)/$name" -o $dest}
+            if($LASTEXITCODE -or (Get-Item $dest).Length -ne $f.size -or (Get-FileHash $dest -Algorithm SHA256).Hash.ToLowerInvariant() -ne $f.sha256){throw "Model checksum mismatch: $($f.path)"}
+          }}
+          foreach($name in @('manifest.json','Chinese-CLIP-LICENSE.txt','DINOv2-LICENSE.txt')){Copy-Item (Join-Path $source $name) $target}
+          Copy-Item $target update/0.5.5更新包/payload/桌面端/resources/bundled-model -Recurse
+      - name: Verify automatic model loading with empty user data
+        shell: pwsh
+        run: |
+          $root=Join-Path $PWD 'bundle/团队便携版'
+          $env:QUICK_TEAM_DATA=Join-Path $env:RUNNER_TEMP 'fresh-0.5.5'
+          $env:QUICK_TEAM_HOST='127.0.0.1';$env:QUICK_TEAM_PORT='5689'
+          $entry=Join-Path $root '服务端/server/start.cjs'
+          $p=Start-Process "$root/服务端/bin/node.exe" -ArgumentList ('"'+$entry+'"') -WindowStyle Hidden -PassThru
+          try{
+            $health=$null
+            for($i=0;$i -lt 90;$i++){try{$health=Invoke-RestMethod http://127.0.0.1:5689/health;break}catch{Start-Sleep -Seconds 1}}
+            if($health.version -ne '0.5.5'){throw 'Health failed'}
+            Invoke-RestMethod http://127.0.0.1:5689/api/session -SessionVariable session | Out-Null
+            $model=$null
+            for($i=0;$i -lt 240;$i++){$model=Invoke-RestMethod http://127.0.0.1:5689/api/models -WebSession $session;if($model.ready){break};Start-Sleep -Seconds 1}
+            if(!$model.ready -or $model.path -notlike '*bundled-model'){throw ('Automatic model load failed: '+($model|ConvertTo-Json -Compress))}
+            @{health=$health;model=$model;manualModelConfiguration=$false}|ConvertTo-Json -Depth 8|Set-Content "$root/cloud-verification.json"
+          }finally{Set-Content (Join-Path $env:QUICK_TEAM_DATA 'stop.request') $p.Id;$p.WaitForExit(15000)|Out-Null}
+          if(Test-Path "$root/服务端/server-data"){throw 'User data found in bundle'}
+      - name: Create update and full archives
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory public | Out-Null
+          @'
+          import pathlib,json,hashlib,zipfile
+          root=pathlib.Path('update/0.5.5更新包');payload=root/'payload'
+          sha=lambda p:hashlib.file_digest(p.open('rb'),'sha256').hexdigest()
+          files=[{'path':p.relative_to(payload).as_posix(),'sha256':sha(p)} for p in sorted(payload.rglob('*')) if p.is_file()]
+          (root/'manifest.json').write_text(json.dumps({'version':'0.5.5','files':files},ensure_ascii=False,indent=2),encoding='utf-8')
+          target=pathlib.Path('public/quick-interface-0.5.5-update.zip')
+          with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for p in sorted(root.rglob('*')):
+                  if p.is_file():z.write(p,pathlib.Path(root.name)/p.relative_to(root))
+          with zipfile.ZipFile(target) as z:assert z.testzip() is None
+          assert target.stat().st_size<1000000000,'Update exceeds old client download limit'
+          m={'application':'quick-interface-team','version':'0.5.5','bytes':target.stat().st_size,'sha256':sha(target),'url':'https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.5/'+target.name,'notes':'内置 Chinese-CLIP 与 DINOv2 模型，首次启动自动加载；设置中显示当前工作区路径，支持打开工作区、素材与本机缓存目录。'}
+          pathlib.Path('public/update.json').write_text(json.dumps(m,ensure_ascii=False,indent=2),encoding='utf-8')
+          '@ | python -
+          if($LASTEXITCODE){throw 'Update archive failed'}
+          Push-Location bundle
+          7z a -t7z -mx1 -mmt=4 -v1900m ../public/quick-interface-0.5.5-windows-x64.7z 团队便携版 | Out-Null
+          if($LASTEXITCODE){throw 'Full archive failed'}
+          Pop-Location
+          7z t public/quick-interface-0.5.5-windows-x64.7z.001 | Out-Null
+          if($LASTEXITCODE){throw 'Full archive CRC failed'}
+          Get-ChildItem public -File|ForEach-Object {((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name}|Set-Content public/SHA256SUMS.txt
+          $files=@(Get-ChildItem public -File|ForEach-Object {$_.FullName})
+          gh release upload v0.5.5 @files
+          if($LASTEXITCODE){throw 'Upload failed'}
