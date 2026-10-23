@@ -16,6 +16,8 @@ def build(bundle,public,tools,nsis,plugins,version,test_url=None):
     hashes=[(p,hashlib.file_digest(p.open('rb'),'sha256').hexdigest()) for p in parts]
     exe=public/f'quick-interface-{version}-Setup.exe'
     config={'VERSION':version,'OUTPUT_EXE':exe,'PLUGIN_DIR':plugins,'DOWNLOAD_URL':f'https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v{version}','DOWNLOAD_GIB':f'{sum(p.stat().st_size for p in parts)/1024**3:.1f}','FIRST_PART':parts[0].name,'SEVEN_EXE':tools/'7za.exe','STOP_HELPER':source/'stop-installed-service.cjs'}
+    config['SEVEN_LICENSE']=tools/'7zip-LICENSE.txt'
+    config['SEVEN_COPYING']=tools/'7zip-COPYING'
     if test_url:
         assert version=='0.0.0' and test_url.startswith('http://127.0.0.1:')
         config['DOWNLOAD_URL']=test_url

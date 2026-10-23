@@ -120,6 +120,8 @@ Section "安装完整程序" Main
   ${EndIf}
   SetOutPath "$INSTDIR"
   File "${STOP_HELPER}"
+  File /oname=7zip-LICENSE.txt "${SEVEN_LICENSE}"
+  File /oname=7zip-COPYING.txt "${SEVEN_COPYING}"
   FileOpen $0 "$INSTDIR\.lingtu-install-id" w
   FileWrite $0 "LingtuInterfaceFinder:${VERSION}"
   FileClose $0
@@ -166,6 +168,8 @@ Section "Uninstall"
   ; Only remove files present in the verified release, never arbitrary data folders.
   !include "generated-uninstall.nsh"
   Delete "$INSTDIR\stop-installed-service.cjs"
+  Delete "$INSTDIR\7zip-LICENSE.txt"
+  Delete "$INSTDIR\7zip-COPYING.txt"
   Delete "$INSTDIR\卸载快速找界面.exe"
   Delete "$DESKTOP\快速找界面 ${VERSION}.lnk"
   Delete "$SMPROGRAMS\灵兔\快速找界面 ${VERSION}.lnk"
