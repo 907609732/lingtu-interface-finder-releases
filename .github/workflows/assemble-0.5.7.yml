@@ -1,0 +1,96 @@
+name: Publish 0.5.7 EXE installer and bundled models
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: 3.12.10
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.18.0
+      - name: Verify and extract public runtime and release components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          gh release download v0.5.7 -p components.zip
+          if($LASTEXITCODE){throw 'Component download failed'}
+          if((Get-FileHash components.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0d013c2e9fa9b1dcd160583f7d688e7dabecf90a8e9f08d4fcbeb379694aa097'){throw 'Component checksum mismatch'}
+          gh release download v0.5.5 -p '*.7z.*' -D base
+          if($LASTEXITCODE){throw 'Runtime download failed'}
+          $expected=@{'quick-interface-0.5.5-windows-x64.7z.001'='0d724dd2b733d399bf3d2c4ef981b1013ce116f2d023cf8d70e22d2852f348d0';'quick-interface-0.5.5-windows-x64.7z.002'='32664e23100596e0da9334dfa8c46cdaf9207b2beb81af54cf24735ae4c08872';'quick-interface-0.5.5-windows-x64.7z.003'='9931beef4bb5f21e4305b87a534a956348fb2300642ef7acb69a8420b77bd6ac'}
+          foreach($name in $expected.Keys){if((Get-FileHash (Join-Path base $name) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected[$name]){throw "Base checksum mismatch: $name"}}
+          7z x base/quick-interface-0.5.5-windows-x64.7z.001 -obundle -y|Out-Null
+          if($LASTEXITCODE){throw 'Runtime extraction failed'}
+          Expand-Archive components.zip components
+          python installer/assemble_release.py overlay
+          if($LASTEXITCODE){throw 'Overlay verification failed'}
+          foreach($dir in @('base')){
+            $full=(Resolve-Path -LiteralPath $dir).Path
+            if(!$full.StartsWith($PWD.Path+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Staging boundary mismatch'}
+            Remove-Item -LiteralPath $full -Recurse -Force
+          }
+          Remove-Item -LiteralPath components.zip
+      - name: Install locked production dependencies
+        shell: pwsh
+        working-directory: bundle/团队便携版/服务端
+        run: |
+          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+          if($LASTEXITCODE){throw 'Locked dependencies failed'}
+      - name: Create and verify offline archives and update package
+        shell: pwsh
+        run: |
+          python installer/assemble_release.py archives
+          if($LASTEXITCODE){throw 'Archive verification failed'}
+      - name: Prepare fixed NSIS toolchain
+        shell: pwsh
+        run: |
+          $files=@(
+            @{name='nsis-3.0.4.1';hash='9877df902530f96357d13a7a31ae2b9df67f48b11ffc9a1700a7c961574ec5fa'},
+            @{name='nsis-resources-3.4.1';hash='593a9a92ef958321293ac6a2ee61e64bf1bd543142a5bd6b3d310709cc924103'}
+          )
+          foreach($file in $files){
+            $archive=$file.name+'.7z'
+            curl.exe -fL --retry 3 -sS "https://github.com/electron-userland/electron-builder-binaries/releases/download/$($file.name)/$archive" -o $archive
+            if($LASTEXITCODE -or (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.hash){throw 'NSIS toolchain checksum mismatch'}
+            7z x $archive ('-o'+$file.name) -y|Out-Null
+            if($LASTEXITCODE){throw 'NSIS extraction failed'}
+          }
+          $compiler=(Get-ChildItem nsis-3.0.4.1 -Recurse -Filter makensis.exe|Where-Object {$_.Directory.Name -ne 'Bin'}|Select-Object -First 1).FullName
+          $plugins=(Get-ChildItem nsis-resources-3.4.1 -Recurse -Directory|Where-Object {$_.Name -eq 'x86-unicode'}|Select-Object -First 1).FullName
+          if(!$compiler -or !$plugins){throw 'NSIS toolchain paths missing'}
+          python installer/build.py --bundle 'bundle/团队便携版' --public public --tools components/tools --nsis $compiler --plugins $plugins --version 0.5.7
+          if($LASTEXITCODE){throw 'NSIS compilation failed'}
+          # Free only verified staging before installation; keep final public volumes.
+          $staging=(Resolve-Path -LiteralPath bundle).Path
+          if($staging -ne (Join-Path $PWD 'bundle')){throw 'Unexpected staging path'}
+          Remove-Item -LiteralPath $staging -Recurse -Force
+      - name: Test actual EXE installation, desktop service, bundled models and uninstall
+        shell: pwsh
+        run: ./installer/verify-installed.ps1
+      - name: Final checksums and public release
+        shell: pwsh
+        run: |
+          Copy-Item installer/README-release.md public/README.md
+          Copy-Item installer/VERIFICATION-release.md public/VERIFICATION.md
+          Copy-Item components/tools/7zip-LICENSE.txt public/7zip-LICENSE.txt
+          Copy-Item components/tools/7zip-COPYING public/7zip-COPYING.txt
+          python installer/assemble_release.py finish
+          if($LASTEXITCODE){throw 'Final checksums failed'}
+          $files=@(Get-ChildItem public -File|ForEach-Object {$_.FullName})
+          gh release upload v0.5.7 @files --clobber
+          if($LASTEXITCODE){throw 'Release upload failed'}
+          gh release edit v0.5.7 --draft=false --latest --title '快速找界面 0.5.7 · EXE 安装版'
+          if($LASTEXITCODE){throw 'Publish failed'}
+          gh release delete-asset v0.5.7 components.zip --yes
+          if($LASTEXITCODE){throw 'Staging asset cleanup failed'}
