@@ -1,4 +1,18 @@
-# 快速找界面 0.5.7
+# 快速找界面下载
+
+## 0.5.8 精简全量试用版
+
+完整离线安装，内置模型并保留 GPU 加速。下载下面全部 3 个文件到同一目录，再运行 EXE：
+
+1. [离线安装 EXE（必须下载）](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-OfflineSetup.exe)
+2. [完整数据分卷 1](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-windows-x64.7z.001)
+3. [完整数据分卷 2](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-windows-x64.7z.002)
+
+[查看试用版说明和验证报告](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.8)。0.5.7 继续作为正式更新版本。
+
+---
+
+## 0.5.7 正式版
 
 ## 首次安装（推荐）
 
