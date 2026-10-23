@@ -1,0 +1,96 @@
+name: Assemble Windows release
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  assemble:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12.10
+      - name: Fetch verified release components
+        shell: pwsh
+        run: |
+          gh release download v0.5.4 -p quick-interface-0.5.4-update.zip -p update.json -p bundle-support.zip
+          if($LASTEXITCODE){throw 'Download failed'}
+          if((Get-FileHash quick-interface-0.5.4-update.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'b4626dc2fb6681a37dec0580020ec33ac7abf61fda698f5e8988bf42f8bd69b5'){throw 'Unexpected update component'}
+          if((Get-FileHash bundle-support.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '6770161942cf236453ae6636ac0383d9fc5af64452220dfef535ac8f45c49e8e'){throw 'Unexpected support component'}
+          $m=Get-Content update.json -Raw | ConvertFrom-Json
+          if((Get-FileHash quick-interface-0.5.4-update.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $m.sha256){throw 'Checksum mismatch'}
+          Expand-Archive quick-interface-0.5.4-update.zip update
+          Expand-Archive bundle-support.zip support
+          $u=Get-ChildItem update -Directory | Select-Object -First 1
+          New-Item -ItemType Directory bundle | Out-Null
+          Copy-Item support/团队便携版 bundle/团队便携版 -Recurse
+          Copy-Item "$($u.FullName)/payload/*" bundle/团队便携版 -Recurse -Force
+      - name: Assemble pinned runtime
+        shell: pwsh
+        run: |
+          $root=Join-Path $PWD 'bundle/团队便携版'
+          Invoke-WebRequest https://github.com/electron/electron/releases/download/v44.7.0/electron-v44.7.0-win32-x64.zip -OutFile electron.zip
+          Expand-Archive electron.zip electron
+          Copy-Item electron/* "$root/桌面端" -Recurse -Force
+          Invoke-WebRequest https://nodejs.org/dist/v24.18.0/node-v24.18.0-win-x64.zip -OutFile node.zip
+          Expand-Archive node.zip node-runtime
+          New-Item -ItemType Directory "$root/服务端/bin" -Force | Out-Null
+          Copy-Item node-runtime/node-v24.18.0-win-x64/node.exe "$root/服务端/bin/node.exe"
+          Copy-Item node-runtime/node-v24.18.0-win-x64/LICENSE "$root/服务端/bin/LICENSE"
+          Push-Location "$root/服务端"
+          npm ci --omit=dev --ignore-scripts
+          if($LASTEXITCODE){throw 'npm failed'}
+          Pop-Location
+          $m=Get-Content support/runtime-manifest.json -Raw | ConvertFrom-Json
+          Invoke-WebRequest $m.pythonSource -OutFile python.zip
+          if((Get-FileHash python.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $m.pythonArchiveSHA256){throw 'Python checksum mismatch'}
+          $worker=Join-Path $root '桌面端/resources/worker'
+          Expand-Archive python.zip $worker -Force
+          Set-Content "$worker/python312._pth" "python312.zip`n.`nLib/site-packages`nimport site`n" -Encoding utf8
+          python -m pip install --no-cache-dir --target "$worker/Lib/site-packages" -r support/runtime-requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+          if($LASTEXITCODE){throw 'Python dependency installation failed'}
+          Copy-Item support/runtime-manifest.json "$worker/runtime-manifest.json"
+          & "$worker/python.exe" -I -B -c 'import torch,transformers,lancedb; print(torch.__version__,torch.version.cuda)'
+          if($LASTEXITCODE){throw 'Runtime import failed'}
+          Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-full_build.7z -OutFile ffmpeg.7z
+          7z x ffmpeg.7z -offmpeg -y | Out-Null
+          if($LASTEXITCODE){throw 'FFmpeg extraction failed'}
+          foreach($name in @('ffmpeg.exe','ffprobe.exe')){$f=Get-ChildItem ffmpeg -Recurse -Filter $name | Select-Object -First 1;Copy-Item $f.FullName "$root/桌面端/resources/media-tools/$name"}
+      - name: Isolated service test
+        shell: pwsh
+        run: |
+          $root=Join-Path $PWD 'bundle/团队便携版'
+          $env:QUICK_TEAM_DATA=Join-Path $env:RUNNER_TEMP 'release-smoke'
+          $env:QUICK_TEAM_HOST='127.0.0.1'
+          $env:QUICK_TEAM_PORT='5689'
+          $entry=Join-Path $root '服务端/server/start.cjs'
+          $p=Start-Process "$root/服务端/bin/node.exe" -ArgumentList ('"'+$entry+'"') -WindowStyle Hidden -PassThru
+          try{
+            $health=$null
+            for($i=0;$i -lt 60;$i++){try{$health=Invoke-RestMethod http://127.0.0.1:5689/health;break}catch{Start-Sleep -Seconds 1}}
+            if($health.version -ne '0.5.4'){throw 'Health check failed'}
+            if((Invoke-WebRequest http://127.0.0.1:5689/).StatusCode -ne 200){throw 'Web check failed'}
+            $health | ConvertTo-Json | Set-Content "$root/cloud-verification.json"
+          }finally{Set-Content (Join-Path $env:QUICK_TEAM_DATA 'stop.request') $p.Id;$p.WaitForExit(15000) | Out-Null}
+          if(Test-Path "$root/服务端/server-data"){throw 'User data found in bundle'}
+      - name: Archive and attach to draft
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory public | Out-Null
+          Push-Location bundle
+          7z a -t7z -mx1 -mmt=4 -v1900m ../public/quick-interface-0.5.4-windows-x64.7z 团队便携版 | Out-Null
+          if($LASTEXITCODE){throw 'Archive failed'}
+          Pop-Location
+          7z t public/quick-interface-0.5.4-windows-x64.7z.001 | Out-Null
+          if($LASTEXITCODE){throw 'CRC failed'}
+          Get-ChildItem public -File | ForEach-Object {((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name} | Set-Content public/SHA256SUMS.txt
+          $files=@(Get-ChildItem public -File | ForEach-Object {$_.FullName})
+          gh release upload v0.5.4 @files
+          if($LASTEXITCODE){throw 'Upload failed'}
