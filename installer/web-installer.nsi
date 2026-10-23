@@ -16,12 +16,20 @@ SetCompressor /SOLID lzma
 ShowInstDetails show
 ShowUninstDetails show
 VIProductVersion "${VERSION}.0"
+!ifdef OFFLINE
+VIAddVersionKey /LANG=2052 "ProductName" "快速找界面完整离线安装器"
+!else
 VIAddVersionKey /LANG=2052 "ProductName" "快速找界面在线安装器"
+!endif
 VIAddVersionKey /LANG=2052 "FileDescription" "快速找界面 ${VERSION} 安装程序"
 VIAddVersionKey /LANG=2052 "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=2052 "LegalCopyright" "Lingtu"
 !define MUI_ABORTWARNING
+!ifdef OFFLINE
+!define MUI_WELCOMEPAGE_TEXT "安装完整程序、运行环境和本地 AI 模型，全程无需联网。$\r$\n$\r$\n请将安装 EXE 与当前版本全部数据分卷放在同一文件夹。安装器会自动校验并解压，缺失或损坏时停止，不会联网补下载。$\r$\n$\r$\n建议为程序准备 15 GiB 可用空间。"
+!else
 !define MUI_WELCOMEPAGE_TEXT "安装完整程序、运行环境和本地 AI 模型。$\r$\n$\r$\n首次安装需要联网，自动下载并校验约 ${DOWNLOAD_GIB} GiB 文件。安装完成后可离线搜索。$\r$\n$\r$\n请为安装和下载缓存准备至少 20 GiB 可用空间。"
+!endif
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchApp
 !define MUI_FINISHPAGE_RUN_TEXT "打开快速找界面"
@@ -50,7 +58,12 @@ Function .onInit
   ${If} $PayloadDir != ""
     StrCpy $ExplicitPayload "1"
   ${Else}
+!ifdef OFFLINE
+    StrCpy $PayloadDir "$EXEDIR"
+    StrCpy $ExplicitPayload "1"
+!else
     StrCpy $PayloadDir "$LOCALAPPDATA\LingtuInterfaceFinder\downloads\${VERSION}"
+!endif
   ${EndIf}
 FunctionEnd
 
@@ -71,6 +84,7 @@ Function GetPart
     SetErrorLevel 2
     Abort
   ${EndIf}
+!ifndef OFFLINE
   DetailPrint "正在下载 $PartName"
   inetc::get /CAPTION "下载快速找界面 ${VERSION}" /USERAGENT "LingtuInstaller/${VERSION}" /RESUME "网络中断，是否继续下载？" "${DOWNLOAD_URL}/$PartName" "$PayloadDir\$PartName" /END
   Pop $Result
@@ -85,6 +99,7 @@ Function GetPart
     SetErrorLevel 2
     Abort
   ${EndIf}
+!endif
 FunctionEnd
 
 Section "安装完整程序" Main

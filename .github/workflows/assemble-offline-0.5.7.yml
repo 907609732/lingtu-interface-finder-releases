@@ -1,0 +1,74 @@
+name: Publish 0.5.7 full offline installer
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  offline:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: 3.12.10
+      - name: Verify complete release payload and tools
+        shell: pwsh
+        run: |
+          gh release download v0.5.7 -p '*.7z.*' -D public
+          if($LASTEXITCODE){throw 'Full payload download failed'}
+          $expected=@{'quick-interface-0.5.7-windows-x64.7z.001'='89d389172c6f83b61b7fe2cde31213742c0e4b91537501ca88f2ad1cae7d97bb';'quick-interface-0.5.7-windows-x64.7z.002'='62ce0b878d6f00e09f4c41f3c3be5b83d4b53e9751f905e11d716e7aac55675d';'quick-interface-0.5.7-windows-x64.7z.003'='27de56f86a94f0c7cc59eef69e995e8aaec6e946ab056f7e11ae1ea10e37acd9'}
+          foreach($name in $expected.Keys){if((Get-FileHash (Join-Path public $name) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected[$name]){throw "Payload checksum mismatch: $name"}}
+          gh release download v0.5.7 -p offline-installer-tools.zip
+          if($LASTEXITCODE -or (Get-FileHash offline-installer-tools.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '7818cd85150ff237a7f97d510110b07ff78201935f55db0f9b62ad662ed89948'){throw 'Tool checksum mismatch'}
+          Expand-Archive offline-installer-tools.zip tools
+          7z x public/quick-interface-0.5.7-windows-x64.7z.001 -obundle -y|Out-Null
+          if($LASTEXITCODE){throw 'Full payload extraction failed'}
+          if(Test-Path -LiteralPath 'bundle/团队便携版/服务端/server-data'){throw 'Release must not include user data'}
+          $version=(Get-Content 'bundle/团队便携版/服务端/package.json' -Raw|ConvertFrom-Json).version
+          if($version -ne '0.5.7'){throw 'Unexpected release version'}
+      - name: Build offline-only EXE with fixed NSIS toolchain
+        shell: pwsh
+        run: |
+          $files=@(
+            @{name='nsis-3.0.4.1';hash='9877df902530f96357d13a7a31ae2b9df67f48b11ffc9a1700a7c961574ec5fa'},
+            @{name='nsis-resources-3.4.1';hash='593a9a92ef958321293ac6a2ee61e64bf1bd543142a5bd6b3d310709cc924103'}
+          )
+          foreach($file in $files){
+            $archive=$file.name+'.7z'
+            curl.exe -fL --retry 3 -sS "https://github.com/electron-userland/electron-builder-binaries/releases/download/$($file.name)/$archive" -o $archive
+            if($LASTEXITCODE -or (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $file.hash){throw 'NSIS toolchain checksum mismatch'}
+            7z x $archive ('-o'+$file.name) -y|Out-Null
+            if($LASTEXITCODE){throw 'Toolchain extraction failed'}
+          }
+          $compiler=(Get-ChildItem nsis-3.0.4.1 -Recurse -Filter makensis.exe|Where-Object {$_.Directory.Name -ne 'Bin'}|Select-Object -First 1).FullName
+          $plugins=(Get-ChildItem nsis-resources-3.4.1 -Recurse -Directory|Where-Object {$_.Name -eq 'x86-unicode'}|Select-Object -First 1).FullName
+          if(!$compiler -or !$plugins){throw 'Toolchain paths missing'}
+          python installer/build.py --bundle 'bundle/团队便携版' --public public --tools tools --nsis $compiler --plugins $plugins --version 0.5.7 --offline
+          if($LASTEXITCODE){throw 'Offline installer compilation failed'}
+          $staging=(Resolve-Path -LiteralPath bundle).Path
+          if($staging -ne (Join-Path $PWD 'bundle')){throw 'Unexpected staging path'}
+          Remove-Item -LiteralPath $staging -Recurse -Force
+      - name: Install from EXE directory, verify models, preserve data on uninstall
+        shell: pwsh
+        run: ./installer/verify-installed.ps1 -Offline
+      - name: Publish offline kit without reuploading unchanged full data
+        shell: pwsh
+        run: |
+          Copy-Item installer/OFFLINE-README.md public/OFFLINE-README.md
+          $manifest=Get-Content public/offline-installer-manifest.json -Raw|ConvertFrom-Json
+          $files=@($manifest.file,'offline-installer-manifest.json','offline-installer-verification.json','OFFLINE-README.md')
+          $hashes=@()
+          foreach($name in @($files)+@($manifest.volumes.name)){
+            $hashes+=((Get-FileHash (Join-Path public $name) -Algorithm SHA256).Hash.ToLowerInvariant()+'  '+$name)
+          }
+          $hashes|Set-Content -Encoding UTF8 public/OFFLINE-SHA256SUMS.txt
+          $upload=@($files|ForEach-Object{(Join-Path $PWD ('public/'+$_))})+@((Join-Path $PWD 'public/OFFLINE-SHA256SUMS.txt'))
+          gh release upload v0.5.7 @upload --clobber
+          if($LASTEXITCODE){throw 'Offline kit upload failed'}
+          gh release delete-asset v0.5.7 offline-installer-tools.zip --yes
+          if($LASTEXITCODE){throw 'Temporary tool cleanup failed'}

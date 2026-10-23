@@ -1,10 +1,23 @@
+param([switch]$Offline)
 $ErrorActionPreference='Stop'
 $workspace=(Get-Location).Path
 $target=Join-Path $env:RUNNER_TEMP 'lingtu-installed-0.5.7'
 if(Test-Path -LiteralPath $target){throw 'Test installation target already exists'}
 $public=Join-Path $workspace 'public'
-$setup=Join-Path $public 'quick-interface-0.5.7-Setup.exe'
-$install=Start-Process -FilePath $setup -ArgumentList @('/S',('/PAYLOADDIR="'+$public+'"'),('/D='+$target)) -PassThru -Wait
+$setup=Join-Path $public $(if($Offline){'quick-interface-0.5.7-OfflineSetup.exe'}else{'quick-interface-0.5.7-Setup.exe'})
+$reportPath=Join-Path $public $(if($Offline){'offline-installer-verification.json'}else{'installer-verification.json'})
+if($Offline){
+  $missing=Join-Path $env:RUNNER_TEMP 'lingtu-missing-volumes-0.5.7'
+  New-Item -ItemType Directory -Path $missing|Out-Null
+  $copy=Join-Path $missing 'OfflineSetup.exe';Copy-Item -LiteralPath $setup -Destination $copy
+  $reject=Start-Process -FilePath $copy -ArgumentList @('/S',('/D='+$target)) -Wait -PassThru
+  if($reject.ExitCode -ne 2 -or (Test-Path -LiteralPath $target)){throw 'Missing local volumes must stop without downloading'}
+  Set-Content -LiteralPath (Join-Path $missing 'quick-interface-0.5.7-windows-x64.7z.001') 'corrupt'
+  $reject=Start-Process -FilePath $copy -ArgumentList @('/S',('/D='+$target)) -Wait -PassThru
+  if($reject.ExitCode -ne 2 -or (Test-Path -LiteralPath $target)){throw 'Corrupt local volumes must stop without downloading'}
+}
+$arguments=if($Offline){@('/S',('/D='+$target))}else{@('/S',('/PAYLOADDIR="'+$public+'"'),('/D='+$target))}
+$install=Start-Process -FilePath $setup -ArgumentList $arguments -PassThru -Wait
 if($install.ExitCode -ne 0){throw "Installer failed: $($install.ExitCode)"}
 $entry=Join-Path $target '团队便携版/桌面端/快速找界面.exe'
 if(!(Test-Path -LiteralPath $entry)){throw 'Installed EXE missing'}
@@ -26,7 +39,7 @@ try{
   $client.Refresh()
   if($client.HasExited){throw 'Desktop client exited unexpectedly'}
   $title=$client.MainWindowTitle
-  @{version='0.5.7';installer='NSIS per-user';silentInstall=$true;health=$health;sessionQuickStart=$sessionResult.quickStart;pageStatus=$page.StatusCode;model=$model;windowTitle=$title;offlineModels=$true;fixtureDownloadTest='Local isolated HTTP download, SHA256 and extraction passed';boundaries=@('Real dual-machine NAS/SMB pending','Windows DPI visual acceptance pending','Public GitHub download resume under packet loss not simulated')}|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 (Join-Path $public 'installer-verification.json')
+  @{version='0.5.7';installer='NSIS per-user';offlineInstaller=[bool]$Offline;localVolumesOnly=[bool]$Offline;missingAndCorruptVolumesRejected=[bool]$Offline;silentInstall=$true;health=$health;sessionQuickStart=$sessionResult.quickStart;pageStatus=$page.StatusCode;model=$model;windowTitle=$title;offlineModels=$true;fixtureDownloadTest='Local isolated HTTP download, SHA256 and extraction passed';boundaries=@('Real dual-machine NAS/SMB pending','Windows DPI visual acceptance pending','Public GitHub download resume under packet loss not simulated')}|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 $reportPath
 }finally{
   if(!$client.HasExited){Stop-Process -Id $client.Id -Force;$client.WaitForExit(15000)|Out-Null}
   $helper=Join-Path $target 'stop-installed-service.cjs'
@@ -42,7 +55,7 @@ $uninstall=Start-Process -FilePath (Join-Path $target '卸载快速找界面.exe
 if($uninstall.ExitCode -ne 0 -or (Test-Path -LiteralPath $entry)){throw 'Uninstall failed'}
 if(!(Test-Path -LiteralPath $sentinel) -or !(Test-Path -LiteralPath $extra)){throw 'Uninstall removed user files'}
 if(!(Test-Path -LiteralPath (Join-Path $env:QUICK_TEAM_DATA 'team.sqlite'))){throw 'Workspace data missing after uninstall'}
-$report=Get-Content (Join-Path $public 'installer-verification.json') -Raw|ConvertFrom-Json
+$report=Get-Content $reportPath -Raw|ConvertFrom-Json
 $report|Add-Member uninstallPreservesData $true
-$report|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 (Join-Path $public 'installer-verification.json')
+$report|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 $reportPath
 Write-Host 'Installed desktop, local service, bundled models and data-preserving uninstall passed.'
