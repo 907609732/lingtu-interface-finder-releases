@@ -1,18 +1,18 @@
-param([switch]$Offline)
+param([switch]$Offline,[string]$Version="0.5.7")
 $ErrorActionPreference='Stop'
 $workspace=(Get-Location).Path
-$target=Join-Path $env:RUNNER_TEMP 'lingtu-installed-0.5.7'
+$target=Join-Path $env:RUNNER_TEMP ("lingtu-installed-"+$Version)
 if(Test-Path -LiteralPath $target){throw 'Test installation target already exists'}
 $public=Join-Path $workspace 'public'
-$setup=Join-Path $public $(if($Offline){'quick-interface-0.5.7-OfflineSetup.exe'}else{'quick-interface-0.5.7-Setup.exe'})
+$setup=Join-Path $public $(if($Offline){("quick-interface-"+$Version+"-OfflineSetup.exe")}else{("quick-interface-"+$Version+"-Setup.exe")})
 $reportPath=Join-Path $public $(if($Offline){'offline-installer-verification.json'}else{'installer-verification.json'})
 if($Offline){
-  $missing=Join-Path $env:RUNNER_TEMP 'lingtu-missing-volumes-0.5.7'
+  $missing=Join-Path $env:RUNNER_TEMP ("lingtu-missing-volumes-"+$Version)
   New-Item -ItemType Directory -Path $missing|Out-Null
   $copy=Join-Path $missing 'OfflineSetup.exe';Copy-Item -LiteralPath $setup -Destination $copy
   $reject=Start-Process -FilePath $copy -ArgumentList @('/S',('/D='+$target)) -Wait -PassThru
   if($reject.ExitCode -ne 2 -or (Test-Path -LiteralPath $target)){throw 'Missing local volumes must stop without downloading'}
-  Set-Content -LiteralPath (Join-Path $missing 'quick-interface-0.5.7-windows-x64.7z.001') 'corrupt'
+  Set-Content -LiteralPath (Join-Path $missing ("quick-interface-"+$Version+"-windows-x64.7z.001")) 'corrupt'
   $reject=Start-Process -FilePath $copy -ArgumentList @('/S',('/D='+$target)) -Wait -PassThru
   if($reject.ExitCode -ne 2 -or (Test-Path -LiteralPath $target)){throw 'Corrupt local volumes must stop without downloading'}
 }
@@ -21,17 +21,17 @@ $install=Start-Process -FilePath $setup -ArgumentList $arguments -PassThru -Wait
 if($install.ExitCode -ne 0){throw "Installer failed: $($install.ExitCode)"}
 $entry=Join-Path $target '团队便携版/桌面端/快速找界面.exe'
 if(!(Test-Path -LiteralPath $entry)){throw 'Installed EXE missing'}
-$env:QUICK_UI_USER_DATA=Join-Path $env:RUNNER_TEMP 'lingtu-test-profile-0.5.7'
-$env:QUICK_TEAM_DATA=Join-Path $env:RUNNER_TEMP 'lingtu-test-data-0.5.7'
+$env:QUICK_UI_USER_DATA=Join-Path $env:RUNNER_TEMP ("lingtu-test-profile-"+$Version)
+$env:QUICK_TEAM_DATA=Join-Path $env:RUNNER_TEMP ("lingtu-test-data-"+$Version)
 $env:QUICK_TEAM_HOST='127.0.0.1';$env:QUICK_TEAM_PORT='5689'
 $client=Start-Process -FilePath $entry -WindowStyle Hidden -PassThru
 try{
   $health=$null
   for($i=0;$i -lt 90;$i++){try{$health=Invoke-RestMethod http://127.0.0.1:5689/health;break}catch{Start-Sleep -Seconds 1}}
-  if($health.version -ne '0.5.7'){throw 'Installed runtime health check failed'}
+  if($health.version -ne $Version){throw 'Installed runtime health check failed'}
   $sessionResult=Invoke-RestMethod http://127.0.0.1:5689/api/session -SessionVariable session
-  if(!$sessionResult.quickStart -or $sessionResult.version -ne '0.5.7'){throw 'Direct main-interface session failed'}
-  $page=Invoke-WebRequest 'http://127.0.0.1:5689/?v=0.5.7'
+  if(!$sessionResult.quickStart -or $sessionResult.version -ne $Version){throw 'Direct main-interface session failed'}
+  $page=Invoke-WebRequest ("http://127.0.0.1:5689/?v="+$Version)
   if($page.StatusCode -ne 200 -or $page.Content -notlike '*<div id="root">*'){throw 'Main interface failed'}
   $model=$null
   for($i=0;$i -lt 240;$i++){$model=Invoke-RestMethod http://127.0.0.1:5689/api/models -WebSession $session;if($model.ready){break};Start-Sleep -Seconds 1}
@@ -39,7 +39,7 @@ try{
   $client.Refresh()
   if($client.HasExited){throw 'Desktop client exited unexpectedly'}
   $title=$client.MainWindowTitle
-  @{version='0.5.7';installer='NSIS per-user';offlineInstaller=[bool]$Offline;localVolumesOnly=[bool]$Offline;missingAndCorruptVolumesRejected=[bool]$Offline;silentInstall=$true;health=$health;sessionQuickStart=$sessionResult.quickStart;pageStatus=$page.StatusCode;model=$model;windowTitle=$title;offlineModels=$true;fixtureDownloadTest='Local isolated HTTP download, SHA256 and extraction passed';boundaries=@('Real dual-machine NAS/SMB pending','Windows DPI visual acceptance pending','Public GitHub download resume under packet loss not simulated')}|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 $reportPath
+  @{version=$Version;installer='NSIS per-user';offlineInstaller=[bool]$Offline;localVolumesOnly=[bool]$Offline;missingAndCorruptVolumesRejected=[bool]$Offline;silentInstall=$true;health=$health;sessionQuickStart=$sessionResult.quickStart;pageStatus=$page.StatusCode;model=$model;windowTitle=$title;offlineModels=$true;fixtureDownloadTest='Local isolated HTTP download, SHA256 and extraction passed';boundaries=@('Real dual-machine NAS/SMB pending','Windows DPI visual acceptance pending','Public GitHub download resume under packet loss not simulated')}|ConvertTo-Json -Depth 10|Set-Content -Encoding UTF8 $reportPath
 }finally{
   if(!$client.HasExited){Stop-Process -Id $client.Id -Force;$client.WaitForExit(15000)|Out-Null}
   $helper=Join-Path $target 'stop-installed-service.cjs'
