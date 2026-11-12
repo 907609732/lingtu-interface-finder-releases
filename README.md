@@ -1,36 +1,96 @@
-# 快速找界面下载
+# 快速找界面 · 游戏 UI 资料库与本地搜图
 
-## 0.5.8 精简全量试用版
+**简体中文（默认）** | [English](README.en.md)
 
-完整离线安装，内置模型并保留 GPU 加速。下载下面全部 3 个文件到同一目录，再运行 EXE：
+按游戏系统和文件夹整理界面截图、工程名、Figma 链接与 GM 说明，使用资料表、图片画册及本地相似图搜索查找参考。
 
-1. [离线安装 EXE（必须下载）](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-OfflineSetup.exe)
-2. [完整数据分卷 1](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-windows-x64.7z.001)
-3. [完整数据分卷 2](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.8/quick-interface-0.5.8-windows-x64.7z.002)
+[下载与发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases) · [文件夹包同步指南](docs/folder-package-sync.zh-CN.md)
 
-[查看试用版说明和验证报告](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.8)。0.5.7 继续作为正式更新版本。
+## 版本与下载
+
+文档更新于 **2026-11-12**。公开下载包与正在开发的功能分别列出：
+
+| 类型             | 版本与入口                                                                                                              | 使用方式                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 已发布扩展       | [0.7.4 · AI资源领航扩展版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4) | 在兼容宿主中导入扩展 ZIP                 |
+| 历史独立版       | [0.5.7 · EXE 安装版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.7)                 | 用于旧版独立安装及回退                   |
+| 历史离线试用版   | [0.5.8 · 精简全量试用版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.8)             | 下载同版全部分卷与离线安装 EXE           |
+| 独立 AI 模型     | [TensorRT for RTX 模型包](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1)      | 在兼容版本的模型设置中导入               |
+| 开发中的同步功能 | [每个文件夹一个包＋人工提交](docs/folder-package-sync.zh-CN.md)                                                         | 本地开发版已验证，尚未更新上述公开下载包 |
+
+GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用上面的 **0.7.4 扩展版**专用链接。本次文档更新不会升级已有安装包或修改旧版更新源。
+
+## 可以做什么
+
+- **资料表整理**：按系统、文件夹及子文件夹管理资料，填写工程名、UI／拼接 Figma 链接和 GM；直接编辑单元格。
+- **图片与画册**：行内查看附件，打开画册浏览原图；支持图片改名、删除确认和恢复。
+- **浏览与筛选**：切换布局、字段、筛选和排序，调整列宽、行高及资料表尺寸；界面默认浅色，可切换深色。
+- **截图找图**：粘贴截图或选择图片，使用本地 Chinese-CLIP＋DINOv2 检索相似界面；相似度是候选排序依据，不是正确率。
+- **修订与冲突**：保留资料历史，查看和恢复旧版本；多人修改同一资料时保留冲突分支，避免静默覆盖。
+- **本机媒体预览**：支持图片、视频、音频及部分工程附件，具体格式能力以对应版本说明为准。
+
+## 安装 0.7.4 扩展版
+
+1. 使用已接入 `hostApi: 1` 工作台扩展接口的 AI资源领航。
+2. 从 [0.7.4 发行页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4)下载 `quick-interface-finder-0.7.4-extension.zip`。
+3. 关闭正在运行的快速找界面工作台，在宿主的“更多功能 → 快速找界面”管理入口导入 ZIP，无需手工解压。
+4. 打开工作台，选择已有资料库。需要 AI 搜图时，再下载或导入独立模型包。
+
+此 ZIP 是工作台扩展，不是独立 EXE、宿主安装器或旧版更新器所用的 `update.zip`。旧宿主需要先升级到支持该接口的版本。
+
+## 文件夹包同步：先保存，人工提交后发布
+
+> **开发版功能。** 以下流程尚未包含在公开的 `extension-v0.7.4` ZIP 或历史 0.5.x 安装包内；请勿用旧客户端直接打开新的文件夹包项目。
+
+```text
+修改资料 → 自动保存本机草稿 → 人工选择文件夹并提交
+       → 生成变更文件夹 ZIP＋提交 JSON → ArtHub 传输
+       → 其他电脑校验、定向解压 → 更新本机资料
+```
+
+每个文件夹只打包自己的直接资料和历史原件，子文件夹另有独立包；项目公共资料有单独的包。普通保存不会自动打包发布，目录移动等关联修改会一起提交。
+
+首次接入时，在设置中选择 ArtHub 同步目录，将资料包校验后展开到独立本机数据目录。离线可继续编辑；接收更新时保留未提交草稿。**AI 模型、图片索引和显卡缓存由每台电脑自行准备，不随资料包同步。**
+
+完整操作、迁移、并发处理和历史整理见[中文同步指南](docs/folder-package-sync.zh-CN.md)。
+
+## 已验证的双端演示
+
+2026-11-12 使用两个独立本地客户端演示：
+
+| 阶段             | 实测结果                                                    |
+| ---------------- | ----------------------------------------------------------- |
+| 修改一条演示资料 | `任务追踪主界面.png` → `任务追踪主界面_人工提交演示.png`    |
+| 只保存草稿       | 第一端变更，第二端仍为旧名，同步目录新增文件为 0            |
+| 人工提交         | 仅新增 1 个 ZIP（47,883 字节）和 1 个 JSON 日志（812 字节） |
+| 第二端接收       | 自动更新为新名，两端修订和原图哈希一致，历史保留            |
+
+该演示使用本地文件复制模拟传输，**不等于真实 ArtHub 云端或两台物理电脑的验收**。写入同步目录成功也不代表云端上传完成。
+
+每文件夹一个包有固定开销，文件夹很细时不保证总文件数更少；历史包会随提交增长，可在验证检查点后人工整理。
+
+## AI 模型与运行环境
+
+- 当前桌面目标为 Windows x64。扩展复用宿主 Electron，并带独立推理运行环境与媒体工具，不内置模型权重或用户资料。
+- 兼容的 TensorRT for RTX 模型面向 NVIDIA RTX 30／40／50 系列；已验证设备为 RTX 3080 Ti，其他显卡以实际兼容测试为准。
+- 在“设置 → 本地 AI 模型”在线下载，或从[模型发布页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1)下载 ZIP 后离线导入。无需另装 Python、PyTorch 或 CUDA Toolkit。
+- 未安装模型时，仍可管理资料并搜索文字字段。旧 PyTorch 模型不能直接导入 RTX 模型环境。
+- 文件夹包模式下，各电脑独立生成自己的图片索引；已有缓存可在本机复用。
+
+## 旧版独立安装与回退
+
+[0.5.7 EXE 安装器](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.7/quick-interface-0.5.7-Setup.exe)会下载并校验该旧版程序、运行环境和内置模型。首次安装需联网，建议准备 20 GiB 空间（包含缓存）。历史安装器没有商业数字签名。
+
+离线使用时下载同版全部 `.7z.*` 分卷到一个目录，从 `.001` 解压并保留完整程序目录。0.5.8 离线试用版需同时下载发行页列出的 EXE 和两个数据分卷。已有 0.5.x 用户按对应发行说明使用更新包，不能用扩展 ZIP 代替旧更新包。
+
+旧版本发行文件保留供回退。文件夹包迁移会生成新目录中的副本，保留旧资料库；切回旧库前，应另外保留迁移后新增的修改。
+
+## 数据与发行边界
+
+此公开仓库提供发行文件、使用说明及发行组装脚本，不公开应用源码归档。用户资料、本机配置、识别数据库与模型权重不会作为本次文档提交上传。
+
+校验值、许可证、签名及设备验收范围以各发行页和包内说明为准。真实 ArtHub 双机传输、占位文件下载、低配设备和大规模图库性能仍需单独验收。
 
 ---
 
-## 0.5.7 正式版
-
-## 首次安装（推荐）
-
-[下载 Windows x64 EXE 安装器](https://github.com/907609732/lingtu-interface-finder-releases/releases/download/v0.5.7/quick-interface-0.5.7-Setup.exe)，双击后按提示安装。
-
-安装器自动下载并逐个校验完整程序、Node/Python 运行环境、Chinese-CLIP 和 DINOv2 模型，创建桌面和开始菜单快捷方式。不需要另外安装 Python 或手动解压。首次安装需要网络，安装后可离线使用。默认安装到当前用户目录，不要求管理员权限；建议准备 20 GiB 空间（包含下载缓存）。程序尚无商业数字签名。
-
-## 离线安装和更新
-
-- 离线搬运：下载当前版本全部 `quick-interface-0.5.7-windows-x64.7z.*` 分卷，放在同一目录，用 7-Zip 从 `.001` 解压。保留整个“团队便携版”目录，双击“桌面端/快速找界面.exe”或“双击这里启动.cmd”。
-- 已有 0.5.x：在设置中检查更新，或下载 `quick-interface-0.5.7-update.zip`。更新包复用已有模型，首次安装请用 EXE 安装器。更新前保存编辑内容并退出客户端。
-- EXE 安装器也支持本地分卷：`quick-interface-0.5.7-Setup.exe /PAYLOADDIR="D:\下载目录"`，会校验同目录中的当前版本全部分卷。
-- 卸载只删除此次安装的程序文件，保留工作区、账号设置、模型查询缓存和后续添加的文件。不会递归删除整个安装目录。
-
-## 本版
-
-单窗口打开新版主界面；顶部统一工具栏；默认资料表，点击单元格填写工程名、GM 和 Figma；设置中可查看并打开实际工作区路径；浅色默认、保留深色主题。模型随完整包安装。工作区和程序目录分离。
-
-校验值见 `SHA256SUMS.txt`，安装器记录见 `installer-manifest.json`，实际测试结果见 `installer-verification.json` 和 `VERIFICATION.md`。真实双机 NAS/SMB 及系统 DPI 视觉验收仍待实机验证。
-
-此仓库只发布程序、说明和发行组装脚本，不公开项目源码归档。旧版本发行文件保留供回退。安装器使用 NSIS（https://nsis.sourceforge.io/）及 electron-builder 的 INetC/StdUtils 插件，解压使用 7-Zip（https://www.7-zip.org/）；模型许可证随程序保存。
+[English documentation](README.en.md) · [文件夹包同步指南](docs/folder-package-sync.zh-CN.md) · [全部发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases)
