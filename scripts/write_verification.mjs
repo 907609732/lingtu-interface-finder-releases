@@ -86,7 +86,7 @@ const verification = {
     artifacthash_definition: 'sha256("<app name>:<app sha256>\\n<extension name>:<extension sha256>\\n")',
     release_manifest: 'release-manifest.json',
     sha256sums: 'SHA256SUMS.txt',
-    version_choice: '版本选择.md',
+    version_choice: 'version-choice.md',
   },
   environment: {
     node: process.version,

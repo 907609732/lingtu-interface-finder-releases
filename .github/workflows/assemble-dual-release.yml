@@ -88,7 +88,7 @@ jobs:
             'extension-delivery.json',
             'SHA256SUMS.txt',
             'release-manifest.json',
-            '版本选择.md',
+            'version-choice.md',
             'cloud-verification.json'
           )
           $present = @($release.assets | ForEach-Object { $_.name })
@@ -227,7 +227,7 @@ jobs:
             'extension-delivery.json',
             'SHA256SUMS.txt',
             'release-manifest.json',
-            '版本选择.md',
+            'version-choice.md',
             'cloud-verification.json'
           )
           foreach ($name in $finalNames) { if ($present -contains $name) { throw "Final asset already exists on the draft: $name" } }
@@ -237,6 +237,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $staging = $env:QIF_STAGING
+          Copy-Item -LiteralPath 'public-output\版本选择.md' -Destination 'public-output\version-choice.md'
           node scripts/write_verification.mjs `
             --output public-output `
             --smoke (Join-Path $staging 'report\packaged-smoke.json') `
@@ -256,7 +257,7 @@ jobs:
             'public-output\extension-delivery.json',
             'public-output\SHA256SUMS.txt',
             'public-output\release-manifest.json',
-            'public-output\版本选择.md',
+            'public-output\version-choice.md',
             'public-output\cloud-verification.json'
           )
           foreach ($file in $files) {
