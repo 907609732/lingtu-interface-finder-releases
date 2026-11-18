@@ -120,6 +120,9 @@ def main() -> int:
 
         require(app_delivery.get("zip") == app_zip.name, "app-delivery zip name mismatch")
         require(extension_delivery.get("zip") == extension_zip.name, "extension-delivery zip name mismatch")
+        require(app_delivery.get("entry") == f"{app_top}/快速找界面.exe", "app-delivery entry mismatch")
+        require(isinstance(extension_delivery.get("files"), int) and extension_delivery["files"] > 0,
+                "extension-delivery file count missing")
         require(app_delivery.get("appAsarSha256") == expected_asar, "app-delivery appAsarSha256 mismatch")
         require(editions["extension"].get("appAsarSha256") == expected_asar,
                 "release-manifest extension appAsarSha256 mismatch")
@@ -190,6 +193,7 @@ def main() -> int:
 
         listed = extension_manifest.get("files")
         require(isinstance(listed, list) and listed, "final extension.json files must be a non-empty array")
+        require(extension_delivery["files"] == len(listed), "extension-delivery file count does not match extension.json")
         build_root = os.path.abspath(build)
         build_resources = build / "resources"
         require(build_resources.is_dir(), f"build resources directory missing: {build_resources}")

@@ -109,7 +109,7 @@ jobs:
             --version $env:QIF_VERSION `
             --manifest-sha256 $env:QIF_INPUTS_SHA256 `
             --report (Join-Path $staging 'report\candidate-verification.json')
-          $manifest = Get-Content (Join-Path $staging 'input\inputs-manifest.json') -Raw | ConvertFrom-Json
+          $manifest = (Get-Content (Join-Path $staging 'input\inputs-manifest.json') -Raw).TrimStart([char]0xFEFF) | ConvertFrom-Json
           $asar = if ($manifest.appAsarSha256) { $manifest.appAsarSha256 } elseif ($manifest.expectedAppAsarSha256) { $manifest.expectedAppAsarSha256 } else { throw 'inputs-manifest.json missing appAsarSha256' }
           if ($asar -notmatch '^[0-9a-fA-F]{64}$') { throw 'inputs-manifest.json appAsarSha256 is invalid' }
           "QIF_INPUT_APP_ASAR=$($asar.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
@@ -296,4 +296,5 @@ jobs:
             }
           }
           Write-Output 'This run did not publish the release. Inspect the draft assets before retrying; existing assets are never overwritten.'
+
 
