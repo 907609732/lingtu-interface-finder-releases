@@ -4,21 +4,26 @@
 
 按游戏系统和文件夹整理界面截图、工程名、Figma 链接与 GM 说明，使用资料表、图片画册及本地相似图搜索查找参考。
 
-[下载与发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases) · [文件夹包同步指南](docs/folder-package-sync.zh-CN.md)
+[下载与发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases) · [ArtHub 普通文件夹同步指南](docs/folder-package-sync.zh-CN.md)
 
 ## 版本与下载
 
-文档更新于 **2026-11-12**。公开下载包与正在开发的功能分别列出：
+文档更新于 **2026-11-18**。当前下载与历史版本：
 
 | 类型             | 版本与入口                                                                                                              | 使用方式                                 |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 当前双版本 | [0.7.5 · 发行页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5) | 独立 APP 完整 ZIP／兼容宿主扩展 ZIP |
 | 已发布扩展       | [0.7.4 · AI资源领航扩展版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4) | 在兼容宿主中导入扩展 ZIP                 |
 | 历史独立版       | [0.5.7 · EXE 安装版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.7)                 | 用于旧版独立安装及回退                   |
 | 历史离线试用版   | [0.5.8 · 精简全量试用版](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.8)             | 下载同版全部分卷与离线安装 EXE           |
 | 独立 AI 模型     | [TensorRT for RTX 模型包](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1)      | 在兼容版本的模型设置中导入               |
-| 开发中的同步功能 | [每个文件夹一个包＋人工提交](docs/folder-package-sync.zh-CN.md)                                                         | 本地开发版已验证，尚未更新上述公开下载包 |
+| 普通目录同步 | [ArtHub 同步指南](docs/folder-package-sync.zh-CN.md) | 0.7.5 已包含；旧文件夹包仅只读迁移 |
 
-GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用上面的 **0.7.4 扩展版**专用链接。本次文档更新不会升级已有安装包或修改旧版更新源。
+请使用 **0.7.5 专用下载链接**。为兼容旧版自动更新器，`releases/latest` 和旧更新源保持历史版本；两个完整 ZIP 不用于旧版增量更新。
+
+## 0.7.5 更新
+
+普通文件夹直接同步取代人工提交打包，缓存留在本机；同时优化主题标题栏、紧凑布局、字段摘要展开、本机回收站图片预览和 AI 增量索引调度。[云端检查](https://github.com/907609732/lingtu-interface-finder-releases/actions/runs/44303948563)及同次最终下载包的本机隔离运行验收通过。本轮未进行真实 ArtHub 双机传输或 GPU 推理验收。
 
 ## 可以做什么
 
@@ -29,45 +34,40 @@ GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用
 - **修订与冲突**：保留资料历史，查看和恢复旧版本；多人修改同一资料时保留冲突分支，避免静默覆盖。
 - **本机媒体预览**：支持图片、视频、音频及部分工程附件，具体格式能力以对应版本说明为准。
 
-## 安装 0.7.4 扩展版
+## 安装 0.7.5 扩展版
 
 1. 使用已接入 `hostApi: 1` 工作台扩展接口的 AI资源领航。
-2. 从 [0.7.4 发行页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4)下载 `quick-interface-finder-0.7.4-extension.zip`。
+2. 从 [0.7.5 发行页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5)下载 `quick-interface-finder-0.7.5-extension.zip`。
 3. 关闭正在运行的快速找界面工作台，在宿主的“更多功能 → 快速找界面”管理入口导入 ZIP，无需手工解压。
 4. 打开工作台，选择已有资料库。需要 AI 搜图时，再下载或导入独立模型包。
 
 此 ZIP 是工作台扩展，不是独立 EXE、宿主安装器或旧版更新器所用的 `update.zip`。旧宿主需要先升级到支持该接口的版本。
 
-## 文件夹包同步：先保存，人工提交后发布
+### 独立 APP 完整版
 
-> **开发版功能。** 以下流程尚未包含在公开的 `extension-v0.7.4` ZIP 或历史 0.5.x 安装包内；请勿用旧客户端直接打开新的文件夹包项目。
+从 [0.7.5 发行页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5)下载 `quick-interface-finder-0.7.5-app-windows-x64.zip`，解压完整目录后双击“快速找界面.exe”。不要覆盖旧版正在运行的目录。功能与验证范围见[版本说明](docs/0.7.5-版本说明.md)。
+
+## 普通文件夹直接由 ArtHub 同步
+
+> **0.7.5 已包含以下流程。** 历史 `extension-v0.7.4` 与 0.5.x 安装包不包含。
 
 ```text
-修改资料 → 自动保存本机草稿 → 人工选择文件夹并提交
-       → 生成变更文件夹 ZIP＋提交 JSON → ArtHub 传输
-       → 其他电脑校验、定向解压 → 更新本机资料
+修改资料 → 直接保存普通文件夹（原图＋不可变修订）
+       → ArtHub 同步该文件夹
+       → 其他电脑打开同一文件夹，直接读取资料与历史
 ```
 
-每个文件夹只打包自己的直接资料和历史原件，子文件夹另有独立包；项目公共资料有单独的包。普通保存不会自动打包发布，目录移动等关联修改会一起提交。
+资料库不再生成文件夹 ZIP、提交日志或人工发布步骤。没有“提交更新”按钮，也不会自动解包；保存即写入共享目录，ArtHub 负责传输。**SQLite、query-cache、缩略图/预览、AI 模型与索引、显卡缓存、任务和回收站只留在本机，不写入共享文件夹。**
 
-首次接入时，在设置中选择 ArtHub 同步目录，将资料包校验后展开到独立本机数据目录。离线可继续编辑；接收更新时保留未提交草稿。**AI 模型、图片索引和显卡缓存由每台电脑自行准备，不随资料包同步。**
+首次接入时选择已有 ArtHub 资料库文件夹，或新建一个空文件夹。多人修改同一资料时继续保留冲突分支，不静默覆盖。
 
-完整操作、迁移、并发处理和历史整理见[中文同步指南](docs/folder-package-sync.zh-CN.md)。
+旧 `format 3 / folder-packages` 项目只读兼容：首次打开不会自动创建空库，需显式“迁移旧文件夹包到普通资料库”。迁移先复制到旁路普通目录并校验文件哈希、修订和原件，保留本机未提交修改、冲突、待发布快照、远端独有提交和本机回收站；失败不切换，旧目录、包、state、outgoing、archives 和回收站不删除。详见[中文同步与迁移指南](docs/folder-package-sync.zh-CN.md)。
 
-## 已验证的双端演示
+## 历史实现与验证边界
 
-2026-11-12 使用两个独立本地客户端演示：
+2026-11-12 曾在隔离开发环境验证“每文件夹一个包＋人工提交”，包括只保存草稿、人工发布 ZIP＋JSON、第二端接收和修订/原图哈希一致。该日常流程已被普通文件夹直连取代，记录仅用于历史追溯。
 
-| 阶段             | 实测结果                                                    |
-| ---------------- | ----------------------------------------------------------- |
-| 修改一条演示资料 | `任务追踪主界面.png` → `任务追踪主界面_人工提交演示.png`    |
-| 只保存草稿       | 第一端变更，第二端仍为旧名，同步目录新增文件为 0            |
-| 人工提交         | 仅新增 1 个 ZIP（47,883 字节）和 1 个 JSON 日志（812 字节） |
-| 第二端接收       | 自动更新为新名，两端修订和原图哈希一致，历史保留            |
-
-该演示使用本地文件复制模拟传输，**不等于真实 ArtHub 云端或两台物理电脑的验收**。写入同步目录成功也不代表云端上传完成。
-
-每文件夹一个包有固定开销，文件夹很细时不保证总文件数更少；历史包会随提交增长，可在验证检查点后人工整理。
+旧演示使用本地文件复制模拟传输，**不等于真实 ArtHub 云端或两台物理电脑的验收**。普通文件夹模式仍需在真实 ArtHub 双机、离线恢复和并发同步环境中验收；写入目录成功也不代表云端上传完成。
 
 ## AI 模型与运行环境
 
@@ -75,7 +75,7 @@ GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用
 - 兼容的 TensorRT for RTX 模型面向 NVIDIA RTX 30／40／50 系列；已验证设备为 RTX 3080 Ti，其他显卡以实际兼容测试为准。
 - 在“设置 → 本地 AI 模型”在线下载，或从[模型发布页](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1)下载 ZIP 后离线导入。无需另装 Python、PyTorch 或 CUDA Toolkit。
 - 未安装模型时，仍可管理资料并搜索文字字段。旧 PyTorch 模型不能直接导入 RTX 模型环境。
-- 文件夹包模式下，各电脑独立生成自己的图片索引；已有缓存可在本机复用。
+- 普通文件夹模式下，各电脑独立生成图片索引、预览和特征缓存；这些内容不会写入 ArtHub 共享目录。
 
 ## 旧版独立安装与回退
 
@@ -83,7 +83,7 @@ GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用
 
 离线使用时下载同版全部 `.7z.*` 分卷到一个目录，从 `.001` 解压并保留完整程序目录。0.5.8 离线试用版需同时下载发行页列出的 EXE 和两个数据分卷。已有 0.5.x 用户按对应发行说明使用更新包，不能用扩展 ZIP 代替旧更新包。
 
-旧版本发行文件保留供回退。文件夹包迁移会生成新目录中的副本，保留旧资料库；切回旧库前，应另外保留迁移后新增的修改。
+旧版本发行文件保留供回退。旧文件夹包迁移只会生成新目录中的普通资料库副本，保留旧目录及其包、状态和回收站；切回旧库前，应另外保留迁移后新增的修改。
 
 ## 数据与发行边界
 
@@ -93,4 +93,4 @@ GitHub 的 `releases/latest` 当前仍指向旧独立版；下载扩展请使用
 
 ---
 
-[English documentation](README.en.md) · [文件夹包同步指南](docs/folder-package-sync.zh-CN.md) · [全部发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases)
+[English documentation](README.en.md) · [ArtHub 普通文件夹同步指南](docs/folder-package-sync.zh-CN.md) · [全部发行记录](https://github.com/907609732/lingtu-interface-finder-releases/releases)

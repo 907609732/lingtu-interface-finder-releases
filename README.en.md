@@ -4,21 +4,26 @@
 
 Organize game interface screenshots, engine names, Figma links and GM notes by system and folder. Find references through a table view, image albums and local visual similarity search.
 
-[Downloads and releases](https://github.com/907609732/lingtu-interface-finder-releases/releases) · [Folder package sync guide](docs/folder-package-sync.en.md)
+[Downloads and releases](https://github.com/907609732/lingtu-interface-finder-releases/releases) · [ArtHub direct folder sync guide](docs/folder-package-sync.en.md)
 
 ## Versions and downloads
 
-Documentation updated on **2026-11-12**. Published packages and features under development are listed separately:
+Documentation updated on **2026-11-18**. Current downloads and historical versions:
 
 | Type                   | Version and link                                                                                                            | How to use                                                                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Current dual edition | [0.7.5 · Release page](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5) | Standalone APP ZIP / compatible-host extension ZIP |
 | Published extension    | [0.7.4 · AI资源领航 extension](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4) | Import the extension ZIP into a compatible host                                  |
 | Legacy standalone app  | [0.5.7 · EXE installer](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.7)                  | Legacy standalone installation and rollback                                      |
 | Legacy offline trial   | [0.5.8 · Slim full trial](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.5.8)                | Download the matching offline EXE and all volumes                                |
 | Separate AI models     | [TensorRT for RTX model package](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1)   | Import through model settings in compatible versions                             |
-| Sync under development | [One package per folder with manual submission](docs/folder-package-sync.en.md)                                             | Verified in a local development build; not added to the published packages above |
+| Direct folder sync | [ArtHub guide](docs/folder-package-sync.en.md) | Included in 0.7.5; legacy packages are read-only migration sources |
 
-GitHub's `releases/latest` currently points to the legacy standalone release. Use the dedicated **0.7.4 extension** link above for the extension. This documentation update does not upgrade existing packages or change the legacy update feed.
+Use the dedicated **0.7.5 download links**. The historical `releases/latest` target and update feed remain unchanged for legacy updater compatibility. Neither full ZIP is a legacy incremental update package.
+
+## Changes in 0.7.5
+
+Direct normal-folder sync replaces manual package submission. Caches remain local. The release adds compact, theme-matched chrome, expandable field summaries, image previews in the local recycle bin and incremental AI index scheduling. [Cloud checks](https://github.com/907609732/lingtu-interface-finder-releases/actions/runs/44303948563) and a local run of the downloaded final APP and extension passed using isolated fixtures. Real ArtHub two-computer transfer and GPU inference were not exercised in this release acceptance.
 
 ## Features
 
@@ -29,45 +34,40 @@ GitHub's `releases/latest` currently points to the legacy standalone release. Us
 - **Revisions and conflicts:** retain history and restore earlier versions; preserve conflicting branches when people edit the same record.
 - **Local media previews:** preview images, video, audio and selected attachment formats, subject to the relevant release's format support.
 
-## Install the 0.7.4 extension
+## Install the 0.7.5 extension
 
 1. Use an AI资源领航 host that implements the `hostApi: 1` workbench extension interface.
-2. Download `quick-interface-finder-0.7.4-extension.zip` from the [0.7.4 release page](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/extension-v0.7.4).
+2. Download `quick-interface-finder-0.7.5-extension.zip` from the [0.7.5 release page](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5).
 3. Close the current Quick Interface Finder workbench. Import the ZIP through “更多功能 → 快速找界面” in the host's extension management UI. Do not extract it manually.
 4. Open the workbench and select an existing library. Download or import the separate model package when you need AI image search.
 
 This ZIP is a workbench extension, not a standalone EXE, a host installer or the `update.zip` expected by the legacy updater. Older hosts must first be upgraded to support the extension interface.
 
-## Folder package sync: save locally, publish manually
+### Standalone APP
 
-> **Development feature.** The following workflow is not included in the published `extension-v0.7.4` ZIP or legacy 0.5.x installers. Do not open a new folder package project with an older client.
+Download `quick-interface-finder-0.7.5-app-windows-x64.zip` from the [0.7.5 release page](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/v0.7.5), extract the entire folder and run “快速找界面.exe”. Use a separate directory from any running older version. See the [release notes](docs/0.7.5-版本说明.md) for changes and validation scope.
+
+## Normal folder synchronized directly by ArtHub
+
+> **Included in 0.7.5.** Historical `extension-v0.7.4` and 0.5.x packages do not include this workflow.
 
 ```text
-Edit records → save local drafts → select folders and submit manually
-             → changed folder ZIPs + commit JSON → ArtHub transfer
-             → other computers validate and extract → local records update
+Edit records → save directly into a normal folder (originals + immutable revisions)
+             → ArtHub synchronizes that folder
+             → other computers open the same folder and read records/history
 ```
 
-Each folder package contains its own direct records and historical originals. Subfolders have separate packages, and project-wide records have their own package. Ordinary saves do not publish packages. Related changes, such as moves between folders, are submitted together.
+Libraries no longer create folder ZIPs, commit logs or a manual publish step. There is no “Submit updates” button and no automatic extraction. Saving writes into the shared folder; ArtHub transfers it. **SQLite, query cache, thumbnails/previews, AI models and indexes, GPU caches, tasks and recycle stay on each computer and are never written into the shared folder.**
 
-On first connection, choose an ArtHub sync directory in Settings. Packages are validated and extracted into a separate local data directory. Editing remains available offline, and incoming updates preserve unsubmitted local drafts. **Each computer prepares its own AI models, image index and GPU cache; these are not synchronized with the data packages.**
+On first connection, select an existing ArtHub library folder or create a library in an empty folder. Concurrent edits to the same record keep conflict branches instead of silently overwriting.
 
-See the [English sync guide](docs/folder-package-sync.en.md) for setup, migration, concurrent edits and history maintenance.
+Legacy `format 3 / folder-packages` projects are read-only migration sources. Opening one does not create an empty library. Use “Migrate legacy folder package to a normal library” explicitly. Migration copies to a side-by-side normal directory and verifies file hashes, revisions and originals. It preserves local uncommitted edits, conflicts, prepared/outgoing snapshots, remote-only commits and local recycle. A failure never switches the destination; old directories, packages, state, outgoing, archives and recycle are retained. See the [English sync and migration guide](docs/folder-package-sync.en.md).
 
-## Verified two-client demonstration
+## Historical implementation and acceptance limits
 
-On 2026-11-12, two isolated local clients demonstrated this workflow:
+On 2026-11-12 an isolated development environment verified “one package per folder + manual submission,” including local draft retention, publishing one ZIP＋JSON, receiving on a second client, and matching revisions/original hashes. That daily workflow has been replaced by direct normal-folder synchronization; the record is historical only.
 
-| Stage                | Observed result                                                                                                 |
-| -------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Edit one demo record | `任务追踪主界面.png` → `任务追踪主界面_人工提交演示.png`                                                        |
-| Save a draft only    | Client A changed; client B retained the original name; no new sync files                                        |
-| Submit manually      | Exactly one ZIP (47,883 bytes) and one JSON commit log (812 bytes) were added                                   |
-| Receive on client B  | The new name appeared automatically; revision IDs and original image hashes matched; history remained available |
-
-The demonstration used local file copying to simulate transport. **It was not a real ArtHub cloud or two-physical-computer acceptance test.** Successfully publishing to a sync directory does not confirm cloud upload completion.
-
-One package per folder has a fixed overhead and may increase total file count in deeply divided libraries. Historical packages accumulate with submissions and can be cleaned up manually after validating a checkpoint.
+The old demonstration simulated transport with local file copying. **It was not a real ArtHub cloud or two-physical-computer acceptance test.** Direct-folder mode still needs real ArtHub two-machine, offline recovery and concurrent-sync acceptance. A successful directory write does not confirm cloud upload completion.
 
 ## AI models and runtime requirements
 
@@ -75,7 +75,7 @@ One package per folder has a fixed overhead and may increase total file count in
 - Compatible TensorRT for RTX models target NVIDIA RTX 30/40/50 GPUs. The verified device is an RTX 3080 Ti; other GPUs require compatibility checks.
 - Download online through “设置 → 本地 AI 模型”, or download a ZIP from the [model release page](https://github.com/907609732/lingtu-interface-finder-releases/releases/tag/models-rtx-1) and import it offline. A separate Python, PyTorch or CUDA Toolkit installation is not required.
 - Library management and text-field search work without models. Legacy PyTorch model folders cannot be imported directly into the RTX runtime.
-- In folder package mode, each computer generates its own image index and can reuse its existing local cache.
+- In direct-folder mode, each computer generates its own image index, previews and feature cache; none of these are written into the ArtHub shared folder.
 
 ## Legacy standalone installation and rollback
 
@@ -83,7 +83,7 @@ The [0.5.7 EXE installer](https://github.com/907609732/lingtu-interface-finder-r
 
 For offline use, download every matching `.7z.*` volume into one directory, extract from `.001` and keep the complete application directory. The 0.5.8 offline trial also requires the EXE and both data volumes listed on its release page. Existing 0.5.x users should follow their release's update instructions; an extension ZIP cannot replace a legacy update package.
 
-Older release assets remain available for rollback. Folder package migration creates a copy in a new directory and retains the original library. Before reverting to that library, preserve any changes made after migration separately.
+Older release assets remain available for rollback. Legacy folder-package migration creates a normal-library copy in a new directory and retains the old directory, packages, state and recycle. Before reverting, preserve any changes made after migration separately.
 
 ## Data and distribution boundaries
 
@@ -93,4 +93,4 @@ Checksums, licenses, signing status and tested hardware are documented in the co
 
 ---
 
-[简体中文](README.md) · [Folder package sync guide](docs/folder-package-sync.en.md) · [All releases](https://github.com/907609732/lingtu-interface-finder-releases/releases)
+[简体中文](README.md) · [ArtHub direct folder sync guide](docs/folder-package-sync.en.md) · [All releases](https://github.com/907609732/lingtu-interface-finder-releases/releases)
