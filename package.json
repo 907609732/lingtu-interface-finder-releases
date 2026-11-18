@@ -1,0 +1,14 @@
+{
+  "name": "quick-interface-finder",
+  "version": "0.7.5",
+  "private": true,
+  "description": "CI-only tool manifest for assembling and smoke-testing the packaged release. It contains no application source.",
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@electron/asar": "3.4.1",
+    "@playwright/test": "1.64.1",
+    "archiver": "8.0.0"
+  }
+}
