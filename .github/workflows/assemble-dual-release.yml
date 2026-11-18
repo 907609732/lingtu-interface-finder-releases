@@ -206,8 +206,8 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           $staging = $env:QIF_STAGING
-          "QIF_HOST_STAGING=$(Join-Path $staging 'host-work')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "QIF_HOST_REPORT_DIR=$(Join-Path $staging 'report')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $env:QIF_HOST_STAGING = Join-Path $staging 'host-work'
+          $env:QIF_HOST_REPORT_DIR = Join-Path $staging 'report'
           $log = Join-Path $staging 'logs\hosted-smoke.log'
           node tests/hosted-smoke.mjs 2>&1 | Tee-Object -FilePath $log
           if ($LASTEXITCODE -ne 0) { throw "hosted extension smoke failed; see $log" }
